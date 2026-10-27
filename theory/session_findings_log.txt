@@ -1,0 +1,387 @@
+ЖУРНАЛ ИССЛЕДОВАНИЯ — СЕССИЯ Claude Code
+Проект: SNN_Research_Project
+Дата: 2026-10-15
+Формат: сводка всего, что было найдено/сделано за сессию, по разделам в хронологическом порядке.
+
+====================================================================
+1. АНАЛИЗ СТРУКТУРЫ ПРОЕКТА
+====================================================================
+Обнаружено несоответствие: папка называется SNN_Research_Project и тема
+(из theory/) — "Численные модели взаимодействия и обмена информацией в
+нейронных сетях мозга", но весь существующий код — это отдельный
+инженерный проект prosthetic_hand/ (CAD-модель протеза кисти + 3D-анимация
+кинематики, CadQuery + matplotlib + trimesh). Ни одной строки SNN-кода
+(Brian2/Nengo/PyNN) в проекте не было, хотя все три фреймворка уже
+установлены в .venv и проверены импортом.
+
+Содержимое:
+- main.py — нетронутый шаблон PyCharm.
+- prosthetic_hand/cad/generate_hand.py — параметрическая CAD-модель кисти
+  с flexure-шарнирами (TPU-печать), запястьем типа "вилка".
+- prosthetic_hand/visualization/animate_hand.py — кинематика "кубиками"
+  (MCP/PIP/DIP через формулу Родрига).
+- prosthetic_hand/visualization/mesh_model/ — риггинг на реальном
+  скан-меше кисти, geodesic-based skinning (решает проблему "ладонь крадёт
+  вершины пальца" при евклидовой метрике).
+- theory/Анализ_фреймворков_SNN.txt — практическая проверка фреймворков
+  на Windows: NEST/NEURON не ставятся (нет win_amd64 wheel), Brian2/Nengo
+  ставятся и работают "из коробки", PyNN на Windows фактически обёртка
+  над Brian2. Рекомендация: Brian2 как основной инструмент.
+- theory/Лит.обзор.xlsx, Список литературы.xlsx — ~150-200 аннотированных
+  источников по темам: межполушарное взаимодействие, гиппокамп-неокортекс,
+  network neuroscience, модели нейронов (HH/LIF/FitzHugh-Nagumo/
+  Morris-Lecar/Hindmarsh-Rose), методы обучения (STDP/Oja/BCM/RLS),
+  методы анализа потока информации (Granger causality/PDC/Welch).
+
+Найденный баг (не исправлен): prosthetic_hand/visualization/mesh_model/
+animate_hand_mesh.py — main() вызывает load_rig() и pose_vertices() с
+неверным числом аргументов (несовпадение сигнатур функций).
+
+====================================================================
+2. СБОР БИБЛИОГРАФИИ С ОТКРЫТЫМ ДОСТУПОМ
+====================================================================
+Задача: найти DOI/ссылки и скачать легальные открытые копии всех
+уникальных источников из обоих xlsx-файлов (без Sci-Hub/LibGen —
+жёсткое ограничение, соблюдалось всеми агентами).
+
+Итог (206 уникальных источников после дедупликации):
+- Скачано PDF (открытый доступ + препринты): 106
+- Открытый доступ подтверждён, но PDF не скачан (PMC/Cloudflare/JS
+  anti-bot защита блокирует автоматическую загрузку, не пэйволл): 28
+- Платный доступ (DOI/ссылка записаны, файл не скачивался): 69
+- Не найдено (нет DOI/индексации): 3 — Chiappalone et al. 2012 (тезисы
+  SfN без DOI), Stewart et al. 2010 (материалы ICCM без DOI),
+  Ефремова Н. А., Тошио И. 2013 (российский журнал, не индексирован)
+
+Результат сохранён в: theory/bibliography_links.csv
+Скачанные PDF: theory/papers/ (104 файла)
+
+====================================================================
+3. СВЕЖИЕ ИССЛЕДОВАНИЯ ПО SNN (поиск через arXiv API, сент-окт 2026)
+====================================================================
+Калибровка: нет одного "прорыва", есть накопление зрелости по трём
+направлениям.
+
+3.1 Scaling laws для spiking языковых моделей
+"Compute-Optimal Scaling Laws for Spiking Language Models" (10 окт. 2026,
+arXiv:2610.15146) — первое Chinchilla-style исследование SpikeGPT
+(RWKV backbone). Compute-optimal frontier N_opt ∝ C^0.56 (близко к 0.50
+у классических трансформеров) — "штраф" за спайковость (~0.16 nats) не
+растёт с масштабом компьюта.
+
+3.2 Обучение без backprop выходит на реальный масштаб
+"PotentialEP: Backprop-Free Training of CIFAR-Scale Generative Models
+via Equilibrium Propagation" (10 окт. 2026) — equilibrium propagation
+впервые обучает генеративные модели CIFAR-масштаба. Смежные работы:
+"Two-State Dynamical Synapses as a Physical Substrate for Equilibrium
+Propagation" (arXiv:2610.17998), "Lock-in EP: An In-Situ Training
+Algorithm for Oscillatory Hardware" — перенос на физическое "железо".
+
+3.3 Нейроморфное железо
+Актуальный потолок — Intel Hala Point (апрель 2024, актуален до сих пор):
+1152 чипа Loihi 2, 1.15 млрд нейронов, 128 млрд синапсов, 20 петаопс,
+2.6 кВт. Преемника (Loihi 3) не анонсировано. Параллельно — BrainScaleS
+(аналоговая wafer-scale система), открытый нейропроцессор RISP.
+
+3.4 Архитектуры
+SpikeMoE (Mixture-of-Experts + спайки, роутинг вдохновлён CA1),
+Spike-driven Vision-Language-Action Model (первый полностью спайковый
+VLA для робототехники), OpenArchEvo (LLM ищут "родные" архитектуры SNN
+эволюционно).
+
+====================================================================
+4. НЕЙРОБИОЛОГИЧЕСКИЕ НАХОДКИ С ПОТЕНЦИАЛОМ НАУЧНОЙ НОВИЗНЫ
+====================================================================
+Методология: искал через PubMed esearch (2025-2026) чисто
+экспериментальные работы по обмену информацией между регионами мозга,
+затем проверял через PubMed+arXiv, что механистической вычислительной
+модели этого явления ещё не существует (не просто предполагал пробел).
+
+КАНДИДАТ 1 (выбран, план написан) — Communication subspace CA1-PFC
+Источник: "Hippocampal-Prefrontal Communication Subspaces Align with
+Behavioral and Network Patterns in a Spatial Memory Task" (eNeuro, 2025,
+PMID 40854711). Находка: поведение крысы в задаче пространственной памяти
+лучше предсказывается общим низкоразмерным "коммуникационным
+подпространством" CA1-PFC (reduced-rank regression), чем локальной
+активностью любого региона; осцилляции и скорость модулируют структуру
+подпространства.
+Методологическая основа: Semedo J. D. et al. 2019, Neuron, "Cortical
+Areas Interact through a Communication Subspace" (PMID 30770252) — RRR.
+Проверка новизны: PubMed `"communication subspace" AND (spiking neural
+network OR computational model)` → 0 результатов. Ближайшая смежная
+работа — "Structure of activity in multiregion recurrent neural
+networks" (arXiv, 2024) — rate RNN, НЕ spiking, без пластичности STDP.
+→ Полный план исследования (гипотезы H1-H5, архитектура модели,
+протокол, аналитика, риски, структура статьи, целевые журналы) записан
+в отдельный файл: theory/research_plan_communication_subspace.md
+
+КАНДИДАТ 2 — Бегущие волны как механизм маршрутизации информации
+"Awake cortex stabilizes traveling waves for global and reliable
+information routing" (iScience, авг. 2026, PMID 42472099). Находка:
+бодрствующая кора генерирует стабильные бегущие волны; информация
+передаётся надёжнее вдоль направления волны; под анестезией — нестабильно.
+Строительный блок для модели уже существует: "Travelling waves modulated
+by subthreshold oscillations in networks of integrate-and-fire neurons"
+(arXiv, нояб. 2025) — спайковые LIF-сети с бегущими волнами.
+
+КАНДИДАТ 3 — VIP-интернейроны как дизингибиторный шлюз
+"Medial entorhinal VIP-expressing interneurons receive input from the
+thalamic anterior dorsal nucleus and are critical for spatial memory"
+(PNAS, дек. 2025, PMID 41397139). Находка: VIP-клетки в MEC получают
+head-direction сигнал от переднего таламуса и критичны для межрегиональной
+передачи в пространственную память — конкретный, анатомически
+подтверждённый дизингибиторный мотив (VIP→SST→Pyr), без вычислительной
+модели именно этой входной цепи.
+
+Дополнительно найдено (для справки, не выбрано):
+- "High-frequency bursts facilitate fast communication for human spatial
+  attention" (Nature Neuroscience, февр. 2026, PMID 41331141) — авторы
+  УЖЕ сделали SNN-модель сами, меньше потенциала новизны при повторении.
+- "Retrosplenial perineuronal nets support hippocampal-cortical coupling"
+  (Cell Reports, июнь 2026, PMID 42207637).
+- "Connectome-constrained ligand-receptor interaction analysis for
+  understanding brain network communication" (Nat Commun, сент. 2025,
+  PMID 40890094) — другой масштаб (молекулярный), менее применимо к SNN.
+
+====================================================================
+5. СВЯЗЬ С РОБОТОТЕХНИКОЙ / ПРОТЕЗИРОВАНИЕМ / КОМПЬЮТЕРНЫМ ЗРЕНИЕМ
+====================================================================
+Протезирование/BCI — САМАЯ СИЛЬНАЯ, честная связь (не притянутая):
+- Kaufman M. T. et al. 2014, Nature Neurosci, "Cortical activity in the
+  null space: permitting preparation without movement" (PMID 24487233) —
+  output-null/output-potent подпространство, родственная идея для
+  "что доходит до эффектора протеза".
+- Gallego J. A. et al. 2020, Nature Neurosci, "Long-term stability of
+  cortical population dynamics underlying consistent behavior"
+  (PMID 31907438) — стабильность нейронного манифолда при дрейфе
+  электродов, прямая инженерная проблема хронических BCI/протезов.
+- Конкретное предложение: заменить захардкоженное расписание
+  smooth_pulse() в prosthetic_hand/visualization/animate_hand.py на
+  выход модели (PFC-аналог → команда сустава) — связать оба проекта
+  в единый пайплайн.
+
+Робототехника — валидно, но слабее: не тот же феномен, а перенос
+RRR-методологии как диагностического инструмента для уже существующих
+мультимодульных спайковых архитектур (например, Spike-driven VLA).
+
+Компьютерное зрение — САМАЯ СЛАБАЯ связь, не рекомендовано туда тянуть
+текущую статью; требует другой постановки задачи (communication subspace
+между слоями зрительной сети — это уже другая статья).
+
+====================================================================
+6. ИССЛЕДОВАНИЕ: СОЗДАНИЕ ДАТАСЕТОВ ДЛЯ SNN (EMG + камера)
+====================================================================
+Контекст: пользователь планирует датчики между локтем и кистью (EMG) +
+камеру на кисть для поиска закономерностей сигнал↔движение.
+
+Ключевой методологический момент: сырой сигнал (EMG или видео) — это НЕ
+спайки, нужен явный этап кодирования. Сравнение схем кодирования:
+"Evaluation of Encoding Schemes on Ubiquitous Sensor Signal for Spiking
+Neural Network" (2024, arXiv:2407.09260) — rate encoding, time-to-first-
+spike (TTFS), binary/threshold, delta modulation — протестировано на
+нейроморфном чипе Loihi2; TTFS дал наименьшую латентность, но нет
+универсально лучшей схемы.
+
+Прямые прецеденты EMG→спайки→жест/кинематика (все скачаны, см. раздел 7):
+- Signals to Spikes for Neuromorphic Regulated Reservoir Computing and
+  EMG Hand Gesture Recognition (2021, arXiv:2106.11169)
+- Heterogeneous Population Encoding for Multi-joint Regression using
+  sEMG Signals (2025, arXiv:2501.15347) — популяция LIF с разнородными
+  параметрами как энкодер для непрерывной регрессии (почти буквально
+  задача пользователя: EMG → углы суставов)
+- Online Transformers with Spiking Neurons for Fast Prosthetic Hand
+  Control (2023, arXiv:2303.11860) — бенчмарк NinaPro DB8
+- KinEMbed: Decoding Kinematics from Electromyography via Cross-Modal
+  Contrastive Learning (2026, arXiv:2607.04820) — state-of-the-art на
+  NinaPro DB8
+- Hand-Gesture Recognition Based on EMG and Event-Based Camera Sensor
+  Fusion: A Benchmark in Neuromorphic Computing (Frontiers Neurosci,
+  2020, PMID 32903824) — ближайший прямой прецедент идеи пользователя
+
+Ключевая находка про ground truth: эталонный публичный датасет NinaPro
+DB8 (EMG→кинематика пальцев) использует CyberGlove (датаглав), а НЕ
+камеру с pose estimation. Комбинация EMG + камера/MediaPipe-подобный
+pose estimation почти не встречается в литературе — то есть подход
+пользователя не копия существующего, а реальная методологическая
+развилка (дешевле датаглава, но потенциально менее точно).
+
+Известная ловушка (из датасетных статей 2025-2026):
+- "EMG Dataset for Gesture Recognition with Arm Translation"
+  (Scientific Data, 2025, PMID 39824832, doi:10.1038/s41597-024-04296-8)
+- "A Co-Located sEMG-pFMG Dataset for Hand Gesture Recognition Under
+  Varying Arm-Position Conditions" (Sensors/MDPI, 2026, PMID 42515508)
+Обе статьи явно показывают: смена положения руки резко меняет EMG-сигнал;
+декодер без вариативности позиций в тренировке плохо обобщается.
+Рекомендация: заложить несколько положений руки и сессий в протокол
+сбора с самого начала.
+
+Практические рекомендации:
+1. Де-риск через NinaPro DB8 первым шагом (проверить пайплайн кодирования
+   + SNN-декодер на чистых данных с точным ground truth, прежде чем
+   собирать свои).
+2. Синхронизация EMG↔камера через общий аппаратный триггер
+   (светодиод в кадре + одновременный импульс в канал EMG, либо общий
+   таймкод).
+3. Протокол вариативности: несколько положений руки, несколько сессий.
+4. Сравнение энкодеров (rate/TTFS/delta) на своих данных как отдельный
+   мини-эксперимент, по методологии "Spike Encoding for Environmental
+   Sound: A Comparative Benchmark" (2025, arXiv:2503.11206).
+
+====================================================================
+7. СКАЧАННЫЕ СТАТЬИ ПО EMG/SNN ДАТАСЕТАМ
+====================================================================
+Папка: theory/papers/emg_snn_dataset_research/ (8 из 9, все проверены как
+валидные PDF)
+
+- Dethier_2021_Signals_to_Spikes_Reservoir_Computing_EMG.pdf
+  (arXiv:2106.11169)
+- Harrison_2025_Heterogeneous_Population_Encoding_sEMG_Regression.pdf
+  (arXiv:2501.15347)
+- Dupeyroux_2023_Online_Transformers_Spiking_Neurons_Prosthetic_Hand.pdf
+  (arXiv:2303.11860)
+- Author_2026_KinEMbed_Decoding_Kinematics_EMG_Contrastive.pdf
+  (arXiv:2607.04820)
+- Author_2024_Evaluation_Encoding_Schemes_Sensor_Signal_SNN.pdf
+  (arXiv:2407.09260)
+- Author_2025_Spike_Encoding_Environmental_Sound_Benchmark.pdf
+  (arXiv:2503.11206)
+- Ceolini_2020_Hand_Gesture_EMG_Event_Camera_Fusion_Neuromorphic.pdf
+  (Frontiers in Neuroscience, doi:10.3389/fnins.2020.00637)
+- Olsson_2025_EMG_Dataset_Gesture_Recognition_Arm_Translation.pdf
+  (Scientific Data, doi:10.1038/s41597-024-04296-8)
+
+НЕ скачана (заблокирована Akamai anti-bot защитой сервера MDPI, статья
+открытая, не пэйволл): "A Co-Located sEMG-pFMG Dataset for Hand Gesture
+Recognition Under Varying Arm-Position Conditions" — ссылка для ручного
+скачивания: https://doi.org/10.3390/s26144626
+
+====================================================================
+8. ТЕНДЕНЦИИ SNN + КОМПЬЮТЕРНОЕ ЗРЕНИЕ (сент-окт 2026)
+====================================================================
+Калибровка: конвергенция с mainstream deep learning трендами, а не
+отдельный прорыв.
+
+8.1 Spiking-трансформеры — чинят диагностированный механизм поломки
+"Contrastive Attention Mitigates Spectral Bias in Spiking Transformers"
+(окт. 2026, arXiv:2610.01403) — спайковые нейроны и spiking
+self-attention работают как низкочастотный фильтр (показано через
+спектральный анализ), отсюда отставание от ANN. TP-Spikformer —
+прунинг токенов для эффективности.
+
+8.2 State-space модели (Mamba-стиль) в событийном зрении
+"REACT: A Fully Spiking State-Space Model for Real-Time Event-Driven
+Temporal Perception" (сент. 2026, arXiv:2609.19204) — обрабатывает
+события по одному, без temporal binning (комплекснозначный нейрон
+C-SiLIF, динамика управляется реальным межсобытийным интервалом).
+
+8.3 Гибридные SNN-ANN архитектуры (прагматизм вместо "чистого SNN")
+"BLADE: ReliaBle Dynamic Hardware-Aware SNN-ANN Boundary SeLection for
+Event-Based Object Detection" (сент. 2026, arXiv:2609.17562) —
+динамический выбор границы SNN/ANN по надёжности/точности/энергии.
+
+8.4 Spiking-GPT архитектуры
+"SpikeDecoder: Realizing the GPT Architecture with Spiking Neural
+Networks" (июнь 2026, arXiv:2606.12287) — напрямую обучаемая (не
+ANN-to-SNN конвертация) spiking-реализация GPT-декодера.
+
+8.5 Unsupervised spike-based обучение (ПРЯМАЯ связь с разделом 6)
+"Unsupervised spiking feature learning for event-based pedestrian
+crossing detection" (сент. 2026, arXiv:2609.31671) — один спайковый
+слой, STDP с winner-take-all, без единой метки, приближается к
+supervised-точности на бенчмарке DVS-PedX. Прямой обходной путь для
+дорогой/шумной ручной разметки в собственном EMG+камера датасете.
+
+8.6 Низкоуровневое зрение
+"Spiking Pyramid Wavelet Transformation for High-efficient and
+Low-energy Image Restoration" (июнь 2026, arXiv:2606.18644) — SNN
+заходят в denoising/restoration через wavelet-разложение.
+
+8.7 Реальные применения и инфраструктура
+Neuromorphic LiDAR BEV detection, automotive detection/tracking,
+ANTShapes (новый бенчмарк-датасет), "Event Burst Trigger" (первая
+найденная adversarial/backdoor-атака именно на event-based SNN
+object detection — признак взросления поля).
+
+====================================================================
+9. ТЕНДЕНЦИИ SNN + ОБУЧЕНИЕ С ПОДКРЕПЛЕНИЕМ (поиск через arXiv API)
+====================================================================
+Калибровка: та же логика зрелости, что и в разделе 8 (SNN+CV) — поле
+решает накопившиеся конкретные болезни роста и выходит на разнообразное
+реальное железо, а не выдаёт единый прорыв.
+
+9.1 Credit assignment для разреженных наград через роль спайков
+"SpikeCredit: Temporal Credit Carrier for Reinforcement Learning with
+Sparse Rewards" (сент. 2026, arXiv:2609.35268) — формализует идею
+Temporal Credit Carrier: градуированные мембранные следы и событийные
+спайки SNN структурно подходят для переноса информации о том, какое
+промежуточное вычисление привело к успеху/провалу при задержанной
+награде — не просто "применили SNN к RL", а аргумент, почему спайковая
+динамика даёт реальное алгоритмическое преимущество.
+
+9.2 Диагностика механизма деградации при малом числе таймстепов
+"Common-Mode Errors Limit Low-Timestep Deep Spiking Q-Networks"
+(окт. 2026, arXiv:2610.07808) — ошибка Q-value разложена на common-mode
+и differential-mode компоненты; именно common-mode доминирует при низком
+числе шагов симуляции. Тот же паттерн, что в SNN+CV: точная диагностика
+вместо общих слов "мало таймстепов = хуже".
+
+9.3 Квантово-спайковые гибриды
+"Q-SpiRL: Quantum Spiking Reinforcement Learning for Adaptive Robot
+Navigation" (май 2026, arXiv:2605.20801) — пять семейств агентов
+(табличный Q-learning, классический MLP/SNN, quantum-enhanced MLP/SNN)
+под одним пайплайном для навигации робота; QSNN сочетает спайковую
+временную обработку с вариационным квантовым представлением признаков.
+
+9.4 RL на уровне синапса, на реальном нейроморфном чипе
+"Bellman Memory Units: A neuromorphic framework for synaptic
+reinforcement learning with an evolving network topology" (нояб. 2025,
+arXiv:2511.16066) — уравнения Беллмана встроены на уровне синапса,
+топология сети эволюционирует во время обучения (направленный граф),
+реализовано через Neural Engineering Framework на чипе Intel Loihi —
+связывает structural plasticity с RL прямо на нейроморфном железе.
+
+9.5 Упрощение вместо наращивания сложности
+"S2Act: Simple Spiking Actor" (март 2026, arXiv:2603.15725) — реакция на
+чувствительность существующих подходов (population coding, reward
+modulation, гибридные ANN-SNN) к гиперпараметрам и нестабильный
+градиентный сигнал в сложных стохастических средах; лёгкий фреймворк
+для мобильной робототехники с жёстким энергобюджетом.
+
+9.6 Методологическое взросление: честные baseline до железных обещаний
+"Spiking Neural Networks for Continuous Control: Neuromorphic
+Reinforcement Learning in Conventional Computing" (авг. 2026,
+arXiv:2608.22729) — систематическая проверка, теряет ли спайковый
+actor-критик (на базе Soft Actor-Critic) в качестве политики ещё до
+подключения аппаратных преимуществ нейроморфного железа — честный
+baseline вместо немедленных заявлений "neuromorphic = быстрее и лучше".
+
+9.7 Фотонные нейроморфные чипы в RL
+"Hardware-Software Collaborative Computing of Photonic Spiking
+Reinforcement Learning for Robotic Continuous Control" (нояб. 2025) и
+"Nonlinear Photonic Neuromorphic Chips for Spiking Reinforcement
+Learning" (авг. 2025) — фотонные (не электронные) нейроморфные чипы для
+непрерывного управления роботом через спайковый RL; диверсификация
+железа за пределы digital/analog электроники.
+
+9.8 Прикладной фронт: навигация дронов, экзоскелеты
+"Spiking Neural Network Actor-Critic Proximal Policy Optimization
+Control for Autonomous UAV Navigation Through Constrained Openings in
+Civil Infrastructure and Buildings" (сент. 2026) и "ATP: Anatomical
+Torque with Passivity-based Control Framework for Safe Upper-Limb
+Exoskeleton Assistance" (авг. 2026) — последнее особенно близко к теме
+протезирования: control framework с явными passivity-гарантиями
+безопасности для верхней конечности.
+
+====================================================================
+10. ФАЙЛЫ, СОЗДАННЫЕ/ОБНОВЛЁННЫЕ ЗА СЕССИЮ
+====================================================================
+- theory/bibliography_links.csv — сводная таблица 206 источников
+  (citation, doi, url, access_status, downloaded_path)
+- theory/papers/ — 104 скачанных PDF из основной библиографии
+- theory/papers/emg_snn_dataset_research/ — 8 скачанных PDF по теме
+  EMG-датасетов и спайкового кодирования
+- theory/research_plan_communication_subspace.md — полный план статьи
+  по кандидату 1 (CA1-PFC communication subspace): гипотезы H1-H5,
+  архитектура модели, протокол, аналитика, 7 этапов (M1-M7), риски,
+  структура статьи, целевые журналы
+- theory/session_findings_log.txt — этот файл

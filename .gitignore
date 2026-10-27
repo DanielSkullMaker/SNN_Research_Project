@@ -1,0 +1,28 @@
+# --- Python environments ---
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+
+# --- IDE ---
+.idea/
+
+# --- Large binary assets: downloaded/generated, not tracked in git ---
+# Literature PDFs (~380MB, 113 files) — source of truth is bibliography_links.csv
+theory/papers/
+# Datasets — re-downloadable via dataset.py / NMNIST auto-fetch
+snn_cnn_memory_subspace/data/
+# Training results/checkpoints — regenerate by running the scripts
+snn_cnn_memory_subspace/results/
+# Rendered animations/meshes — regenerate via animate_hand.py / build_rig.py
+prosthetic_hand/visualization/output/
+prosthetic_hand/visualization/mesh_model/assets/rig_data.npz
+# Generated CAD exports — regenerate via generate_hand.py
+prosthetic_hand/cad/output/
+
+# --- OS/editor cruft ---
+.DS_Store
+Thumbs.db
+*.swp

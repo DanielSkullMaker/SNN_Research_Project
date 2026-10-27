@@ -1,0 +1,8 @@
+# torch/torchvision: установлены CUDA-сборкой (+cu124). На новой машине
+# ставить ОТДЕЛЬНО через официальный индекс PyTorch (см. корневой README),
+# иначе обычный "pip install torch" даст CPU-сборку без CUDA-ускорения.
+torch==2.6.0
+torchvision==0.21.0
+spikingjelly==0.0.0.0.14
+scikit-learn==1.9.1
+numpy==2.5.4
